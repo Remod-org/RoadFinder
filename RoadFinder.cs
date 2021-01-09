@@ -156,11 +156,7 @@ namespace Oxide.Plugins
 
         #region InboundHooks
         private List<string> GetRoadNames() => roads.Keys.ToList();
-        private Dictionary<string, Road> GetRoads()
-        {
-            Puts("cunts");
-            return roads;
-        }
+        private Dictionary<string, Road> GetRoads() => roads;
         private Road GetRoad(string name) => roads[name];
         private List<Vector3> GetRoadPoints(string name) => roads[name].points;
         #endregion
