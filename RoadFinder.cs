@@ -28,13 +28,13 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("RoadFinder", "RFC1920", "1.0.2")]
+    [Info("RoadFinder", "RFC1920", "1.0.3")]
     [Description("Allows admins to show or teleport to roads, and devs to use road points.")]
 
     class RoadFinder : CovalencePlugin
     {
         const string permUse = "roadfinder.use";
-        private static Dictionary<string, Road> roads = new Dictionary<string, Road>();
+        public static Dictionary<string, Road> roads = new Dictionary<string, Road>();
 
         #region Message
         private string Lang(string key, string id = null, params object[] args) => string.Format(lang.GetMessage(key, this, id), args);
@@ -62,7 +62,7 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>()
             {
                 { "NoPermission", "You don't have permission to use this command." },
-                { "IncorrectUsage", "Incorrect usage! /road {list/name}" },
+                { "IncorrectUsage", "Incorrect usage! /road [list/name]" },
                 { "DoesntExist", "The road '{0}' doesn't exist. Use '/road list' for a list of roads." },
                 { "RoadList", "<color=#00ff00>Roads:</color>\n{0}" },
                 { "start", "Start" },
@@ -156,7 +156,11 @@ namespace Oxide.Plugins
 
         #region InboundHooks
         private List<string> GetRoadNames() => roads.Keys.ToList();
-        private Dictionary<string, Road> GetRoads() => roads;
+        private Dictionary<string, Road> GetRoads()
+        {
+            Puts("cunts");
+            return roads;
+        }
         private Road GetRoad(string name) => roads[name];
         private List<Vector3> GetRoadPoints(string name) => roads[name].points;
         #endregion
