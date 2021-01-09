@@ -28,7 +28,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("RoadFinder", "RFC1920", "1.0.1")]
+    [Info("RoadFinder", "RFC1920", "1.0.2")]
     [Description("Allows admins to show or teleport to roads, and devs to use road points.")]
 
     class RoadFinder : CovalencePlugin
@@ -54,7 +54,11 @@ namespace Oxide.Plugins
         void Init()
         {
             permission.RegisterPermission(permUse, this);
+            FindRoads();
+        }
 
+        protected override void LoadDefaultMessages()
+        {
             lang.RegisterMessages(new Dictionary<string, string>()
             {
                 { "NoPermission", "You don't have permission to use this command." },
