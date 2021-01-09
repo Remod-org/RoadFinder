@@ -17,6 +17,16 @@ Ex:
   - roadfinder.use - Allow use of the road command
 
 ### For Developers
+    The following can be used for example as follows:
+
+```cs
+    [PluginReference]
+    private readonly Plugin RoadFinder;
+
+    Dictionary<string, Road> roads = RoadFinder?.Call("GetRoads");
+```
+
+## Hooks:
 
 ```cs
 List<string> GetRoadNames();
