@@ -28,7 +28,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("RoadFinder", "RFC1920", "1.0.3")]
+    [Info("RoadFinder", "RFC1920", "1.0.4")]
     [Description("Allows admins to show or teleport to roads, and devs to use road points.")]
 
     class RoadFinder : CovalencePlugin
@@ -51,7 +51,7 @@ namespace Oxide.Plugins
             public int topo;
         }
 
-        void Init()
+        void OnServerInitialized()
         {
             permission.RegisterPermission(permUse, this);
             FindRoads();
@@ -71,8 +71,6 @@ namespace Oxide.Plugins
                 { "TeleportedTo", "Teleported to the {1} of : {0}" }
             }, this);
         }
-
-        void OnServerInitialized() => FindRoads();
 
         [Command("road")]
         void roadCommand(IPlayer player, string command, string[] args)
