@@ -12,9 +12,33 @@ Ex:
     /road end Road 12 - to teleport to the start of Road 12
 	/road start Road 10 - 0
 	/road Road 11 - to teleport to the start of Road 11
+	/road 11 - to teleport to the start of Road 11
+
+Note that as of version 1.0.5, you can use just the road number for the target road instead of, e.g. "Road X".
 
 ### Permissions
   - roadfinder.use - Allow use of the road command
+
+### Configuration
+
+```json
+{
+  "Options": {
+    "ShowAllTextTime": 30.0,
+    "ShowOneTextTime": 60.0,
+    "ShowOneAllPoints": true
+  },
+  "Version": {
+    "Major": 1,
+    "Minor": 0,
+    "Patch": 5
+  }
+}
+```
+
+  - `ShowAllTextTime` -- How long to display start and end points as debug text (at road points)
+  - `ShowOneTextTime` -- How long to display start, end and road points for a single road via /road show
+  - `ShowOneAllPoints` -- For /road show, display all road points (vs. start and end)
 
 ### For Developers
     The following can be used for example as follows:

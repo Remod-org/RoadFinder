@@ -25,14 +25,17 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Oxide.Core.Libraries.Covalence;
+using System;
+using Oxide.Core;
 
 namespace Oxide.Plugins
 {
-    [Info("RoadFinder", "RFC1920", "1.0.4")]
+    [Info("RoadFinder", "RFC1920", "1.0.5")]
     [Description("Allows admins to show or teleport to roads, and devs to use road points.")]
 
     class RoadFinder : CovalencePlugin
     {
+        private ConfigData configData;
         const string permUse = "roadfinder.use";
         public static Dictionary<string, Road> roads = new Dictionary<string, Road>();
 
@@ -54,6 +57,7 @@ namespace Oxide.Plugins
         void OnServerInitialized()
         {
             permission.RegisterPermission(permUse, this);
+            LoadConfigVariables();
             FindRoads();
         }
 
@@ -91,8 +95,8 @@ namespace Oxide.Plugins
             {
                 foreach (KeyValuePair<string, Road> r in roads)
                 {
-                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 30, Color.green, r.Value.points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("start",null)}</size>");
-                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 30, Color.blue, r.Value.points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("end",null)}</size>");
+                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.green, r.Value.points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("start",null)}</size>");
+                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.blue, r.Value.points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("end",null)}</size>");
                 }
                 string roadlist = "";
                 foreach(KeyValuePair<string, Road> r in roads)
@@ -108,13 +112,27 @@ namespace Oxide.Plugins
             string send = "start";
             bool tp = true;
 
-            if (args[0].ToLower() == "show")
+            if (args[0].ToLower() == "show" && args.Length > 1)
             {
                 List<string> newargs = new List<string>(args);
                 newargs.RemoveAt(0);
                 roadName = string.Join(" ", newargs).ToLower().Titleize();
-                (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 30, Color.green, roads[roadName].points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("start",null)}</size>");
-                (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 30, Color.blue, roads[roadName].points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("end",null)}</size>");
+                roadName = FixRoadName(roadName);
+
+                (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.green, roads[roadName].points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("start",null)}</size>");
+
+                if (configData.Options.ShowOneAllPoints)
+                {
+                    int i = -1;
+                    foreach (Vector3 pt in roads[roadName].points)
+                    {
+                        i++;
+                        if (i == 0 || i == roads[roadName].points.Count - 1) continue;
+                        string d = Math.Round(Vector3.Distance(roads[roadName].points[i], roads[roadName].points[i - 1]), 2).ToString();
+                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 300, Color.yellow, pt + new Vector3(0, 1.5f, 0), $"<size=20>{i.ToString()} ({d})m</size>");
+                    }
+                }
+                (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.blue, roads[roadName].points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("end",null)}</size>");
                 tp = false;
             }
             else if (args[0].ToLower() == "start")
@@ -122,18 +140,21 @@ namespace Oxide.Plugins
                 List<string> newargs = new List<string>(args);
                 newargs.RemoveAt(0);
                 roadName = string.Join(" ", newargs).ToLower().Titleize();
+                roadName = FixRoadName(roadName);
             }
             else if (args[0].ToLower() == "end")
             {
                 List<string> newargs = new List<string>(args);
                 newargs.RemoveAt(0);
                 roadName = string.Join(" ", newargs).ToLower().Titleize();
+                roadName = FixRoadName(roadName);
                 point = roads[roadName].points.Count - 1;
                 send = "end";
             }
             else
             {
                 roadName = string.Join(" ", args).ToLower().Titleize();
+                roadName = FixRoadName(roadName);
             }
 
             if (!roads.ContainsKey(roadName))
@@ -150,6 +171,14 @@ namespace Oxide.Plugins
             }
         }
 
+        public string FixRoadName(string roadName)
+        {
+            if (roadName.Length < 3)
+            {
+                roadName = "Road " + roadName;
+            }
+            return roadName;
+        }
         GenericPosition ToGeneric(Vector3 vec) => new GenericPosition(vec.x, vec.y, vec.z);
 
         #region InboundHooks
@@ -178,5 +207,42 @@ namespace Oxide.Plugins
                 }
             }
         }
+
+        #region config
+        protected override void LoadDefaultConfig()
+        {
+            Puts("Creating new config file.");
+            var config = new ConfigData
+            {
+                Version = Version
+            };
+        }
+
+        private void LoadConfigVariables()
+        {
+            configData = Config.ReadObject<ConfigData>();
+
+            configData.Version = Version;
+            SaveConfig(configData);
+        }
+
+        private void SaveConfig(ConfigData config)
+        {
+            Config.WriteObject(config, true);
+        }
+
+        public class ConfigData
+        {
+            public Options Options = new Options();
+            public VersionNumber Version;
+        }
+
+        public class Options
+        {
+            public float ShowAllTextTime = 30;
+            public float ShowOneTextTime = 60;
+            public bool ShowOneAllPoints = true;
+        }
+        #endregion
     }
 }
