@@ -38,6 +38,7 @@ namespace Oxide.Plugins
         private ConfigData configData;
         const string permUse = "roadfinder.use";
         public static Dictionary<string, Road> roads = new Dictionary<string, Road>();
+        public static Dictionary<string, Road> rivers = new Dictionary<string, Road>();
 
         #region Message
         private string Lang(string key, string id = null, params object[] args) => string.Format(lang.GetMessage(key, this, id), args);
@@ -58,7 +59,7 @@ namespace Oxide.Plugins
         {
             permission.RegisterPermission(permUse, this);
             LoadConfigVariables();
-            FindRoads();
+            FindRoadsAndRivers();
         }
 
         protected override void LoadDefaultMessages()
@@ -66,9 +67,10 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>()
             {
                 { "NoPermission", "You don't have permission to use this command." },
-                { "IncorrectUsage", "Incorrect usage! /road [list/name]" },
-                { "DoesntExist", "The road '{0}' doesn't exist. Use '/road list' for a list of roads." },
+                { "IncorrectUsage", "Incorrect usage! /road|/river [list/name]" },
+                { "DoesnotExist", "The road/river '{0}' doesn't exist. Use '/road list' for a list of roads and /river for a list of rivers" },
                 { "RoadList", "<color=#00ff00>Roads:</color>\n{0}" },
+                { "RiverList", "<color=#00ff00>Rivers:</color>\n{0}" },
                 { "start", "Start" },
                 { "end", "End" },
                 { "TeleportingTo", "Teleporting to the {1} of : {0} in {2} seconds..." },
@@ -76,6 +78,11 @@ namespace Oxide.Plugins
             }, this);
         }
 
+        [Command("river")]
+        void riverCommand(IPlayer player, string command, string[] args)
+        {
+            roadCommand(player, command, args);
+        }
         [Command("road")]
         void roadCommand(IPlayer player, string command, string[] args)
         {
@@ -93,17 +100,34 @@ namespace Oxide.Plugins
 
             if (args[0].ToLower() == "list")
             {
-                foreach (KeyValuePair<string, Road> r in roads)
+                if (command == "river")
                 {
-                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.green, r.Value.points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("start",null)}</size>");
-                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.blue, r.Value.points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("end",null)}</size>");
+                    foreach (KeyValuePair<string, Road> r in rivers)
+                    {
+                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.green, r.Value.points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("start", null)}</size>");
+                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.blue, r.Value.points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("end", null)}</size>");
+                    }
+                    string roadlist = "";
+                    foreach (KeyValuePair<string, Road> r in rivers)
+                    {
+                        roadlist += r.Key + ": " + r.Value.points[0].ToString() + "\n";
+                    }
+                    Message(player, "RiverList", roadlist);
                 }
-                string roadlist = "";
-                foreach(KeyValuePair<string, Road> r in roads)
+                else
                 {
-                    roadlist += r.Key + ": " + r.Value.points[0].ToString() + "\n";
+                    foreach (KeyValuePair<string, Road> r in roads)
+                    {
+                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.green, r.Value.points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("start", null)}</size>");
+                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowAllTextTime, Color.blue, r.Value.points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{r.Key} {Lang("end", null)}</size>");
+                    }
+                    string roadlist = "";
+                    foreach (KeyValuePair<string, Road> r in roads)
+                    {
+                        roadlist += r.Key + ": " + r.Value.points[0].ToString() + "\n";
+                    }
+                    Message(player, "RoadList", roadlist);
                 }
-                Message(player, "RoadList", roadlist);
                 return;
             }
 
@@ -117,19 +141,39 @@ namespace Oxide.Plugins
                 List<string> newargs = new List<string>(args);
                 newargs.RemoveAt(0);
                 roadName = string.Join(" ", newargs).ToLower().Titleize();
-                roadName = FixRoadName(roadName);
+                roadName = FixRoadName(roadName, (command == "river"));
 
-                (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.green, roads[roadName].points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("start",null)}</size>");
+                if (command == "river")
+                {
+                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.green, rivers[roadName].points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("start", null)}</size>");
+                }
+                else
+                {
+                    (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.green, roads[roadName].points[0] + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("start", null)}</size>");
+                }
 
                 if (configData.Options.ShowOneAllPoints)
                 {
                     int i = -1;
-                    foreach (Vector3 pt in roads[roadName].points)
+                    if (command == "river")
                     {
-                        i++;
-                        if (i == 0 || i == roads[roadName].points.Count - 1) continue;
-                        string d = Math.Round(Vector3.Distance(roads[roadName].points[i], roads[roadName].points[i - 1]), 2).ToString();
-                        (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 300, Color.yellow, pt + new Vector3(0, 1.5f, 0), $"<size=20>{i.ToString()} ({d})m</size>");
+                        foreach (Vector3 pt in rivers[roadName].points)
+                        {
+                            i++;
+                            if (i == 0 || i == rivers[roadName].points.Count - 1) continue;
+                            string d = Math.Round(Vector3.Distance(rivers[roadName].points[i], rivers[roadName].points[i - 1]), 2).ToString();
+                            (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 300, Color.yellow, pt + new Vector3(0, 1.5f, 0), $"<size=20>{i.ToString()} ({d})m</size>");
+                        }
+                    }
+                    else
+                    {
+                        foreach (Vector3 pt in roads[roadName].points)
+                        {
+                            i++;
+                            if (i == 0 || i == roads[roadName].points.Count - 1) continue;
+                            string d = Math.Round(Vector3.Distance(roads[roadName].points[i], roads[roadName].points[i - 1]), 2).ToString();
+                            (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", 300, Color.yellow, pt + new Vector3(0, 1.5f, 0), $"<size=20>{i.ToString()} ({d})m</size>");
+                        }
                     }
                 }
                 (player.Object as BasePlayer).SendConsoleCommand("ddraw.text", configData.Options.ShowOneTextTime, Color.blue, roads[roadName].points.Last() + new Vector3(0, 1.5f, 0), $"<size=20>{roadName} {Lang("end",null)}</size>");
@@ -154,28 +198,45 @@ namespace Oxide.Plugins
             else
             {
                 roadName = string.Join(" ", args).ToLower().Titleize();
-                roadName = FixRoadName(roadName);
+                roadName = FixRoadName(roadName, (command == "river"));
             }
 
-            if (!roads.ContainsKey(roadName))
+            if (!roads.ContainsKey(roadName) && !rivers.ContainsKey(roadName))
             {
-                Message(player, "DoesntExist", roadName);
+                Message(player, "DoesnotExist", roadName);
                 return;
             }
 
             if (tp)
             {
-                var pos = ToGeneric(roads[roadName].points[point]);
-                Message(player, "TeleportingTo", roadName, send, "5");
-                timer.Once(5f, () => { player.Teleport(pos.X, pos.Y, pos.Z); Message(player, "TeleportedTo", send, roadName); });
+                if (command == "river")
+                {
+                    var pos = ToGeneric(rivers[roadName].points[point]);
+                    Message(player, "TeleportingTo", roadName, send, "5");
+                    pos.Y = TerrainMeta.HeightMap.GetHeight(rivers[roadName].points[point]);
+                    timer.Once(5f, () => { player.Teleport(pos.X, pos.Y, pos.Z); Message(player, "TeleportedTo", send, roadName); });
+                }
+                else
+                {
+                    var pos = ToGeneric(roads[roadName].points[point]);
+                    Message(player, "TeleportingTo", roadName, send, "5");
+                    timer.Once(5f, () => { player.Teleport(pos.X, pos.Y, pos.Z); Message(player, "TeleportedTo", send, roadName); });
+                }
             }
         }
 
-        public string FixRoadName(string roadName)
+        public string FixRoadName(string roadName, bool river = false)
         {
             if (roadName.Length < 3)
             {
-                roadName = "Road " + roadName;
+                if (river)
+                {
+                    roadName = "River " + roadName;
+                }
+                else
+                {
+                    roadName = "Road " + roadName;
+                }
             }
             return roadName;
         }
@@ -186,9 +247,14 @@ namespace Oxide.Plugins
         private Dictionary<string, Road> GetRoads() => roads;
         private Road GetRoad(string name) => roads[name];
         private List<Vector3> GetRoadPoints(string name) => roads[name].points;
+
+        private List<string> GetRiverNames() => rivers.Keys.ToList();
+        private Dictionary<string, Road> GetRivers() => rivers;
+        private Road GetRiver(string name) => rivers[name];
+        private List<Vector3> GetRiverPoints(string name) => rivers[name].points;
         #endregion
 
-        private void FindRoads()
+        private void FindRoadsAndRivers()
         {
             foreach (PathList x in TerrainMeta.Path.Roads)
             {
@@ -204,6 +270,23 @@ namespace Oxide.Plugins
                 foreach (var point in x.Path.Points)
                 {
                     roads[roadname].points.Add(point);
+                }
+            }
+
+            foreach (PathList x in TerrainMeta.Path.Rivers)
+            {
+                if (rivers.ContainsKey(x.Name)) continue;
+                var roadname = x.Name;
+                rivers.Add(roadname, new Road()
+                {
+                    topo   = x.Topology,
+                    width  = x.Width,
+                    offset = x.TerrainOffset
+                });
+
+                foreach (var point in x.Path.Points)
+                {
+                    rivers[roadname].points.Add(point);
                 }
             }
         }
