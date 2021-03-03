@@ -1,7 +1,7 @@
 ﻿#region License (GPL v3)
 /*
     Road Finder - Show and list roads, and use road points
-    Copyright (c) 2021 RFC1920 <desolationoutpostpve@gmail.com>
+    Copyright (c)2021 RFC1920 <desolationoutpostpve@gmail.com>
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
