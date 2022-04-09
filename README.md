@@ -1,5 +1,5 @@
 # RoadFinder
-Show and list Rust roads, and use road points programmatically
+Show and list Rust roads, rivers, and rails, and use their points programmatically
 
 ### Commands
   - /road (Requires roadfinder.use)
@@ -13,6 +13,8 @@ Ex:
 	/road start Road 10 - 0
 	/road Road 11 - to teleport to the start of Road 11
 	/road 11 - to teleport to the start of Road 11
+
+The above commands are duplicated for rivers and rails.  Replace road with river or rail, etc.
 
 Note that as of version 1.0.5, you can use just the road number for the target road instead of, e.g. "Road X".
 
@@ -31,7 +33,7 @@ Note that as of version 1.0.5, you can use just the road number for the target r
   "Version": {
     "Major": 1,
     "Minor": 0,
-    "Patch": 5
+    "Patch": 6
   }
 }
 ```
@@ -85,4 +87,6 @@ List<Vector3> GetRoadPoints(string name);
 ```
 
     Returns a list of vectors for the entire run of the road.  The count will vary based on road length.
+
+The above are duplicated for rivers and rails, e.g. GetRiverNames, GetRailNames, etc.
 
